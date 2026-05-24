@@ -11,7 +11,11 @@ async function request(base, path, options = {}) {
     data = text;
   }
   if (!res.ok) {
-    const err = new Error(typeof data === 'object' && data?.message ? data.message : res.statusText);
+    const msg =
+      typeof data === 'object' && data
+        ? data.msg ?? data.message
+        : null;
+    const err = new Error(msg || res.statusText);
     err.status = res.status;
     err.data = data;
     throw err;

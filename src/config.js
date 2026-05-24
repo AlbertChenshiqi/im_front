@@ -1,8 +1,9 @@
 const STORAGE_KEY = 'im-debug-config';
 
+/** 本地 Vite 代理：/proxy/{service} → localhost:10X00/{service}；K8s Ingress 填 https://域名/{service} */
 export const DEFAULT_CONFIG = {
   userApi: '/proxy/user',
-  gatewayWs: 'ws://localhost:10000/v1/ws',
+  gatewayWs: 'ws://localhost:10000/gateway/v1/ws',
   convApi: '/proxy/conversation',
   msgApi: '/proxy/message',
   groupApi: '/proxy/group',
@@ -46,7 +47,12 @@ export function loadConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_CONFIG };
-    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+    const cfg = { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+    // 兼容旧版 gatewayWs（/v1/ws → /gateway/v1/ws）
+    if (cfg.gatewayWs?.endsWith('/v1/ws') && !cfg.gatewayWs.includes('/gateway/')) {
+      cfg.gatewayWs = cfg.gatewayWs.replace(/\/v1\/ws$/, '/gateway/v1/ws');
+    }
+    return cfg;
   } catch {
     return { ...DEFAULT_CONFIG };
   }

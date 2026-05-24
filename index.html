@@ -3,224 +3,165 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>IM 调试台</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <title>IM 测试</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <div class="app" id="app">
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark"></span>
-          <h1>IM 调试台</h1>
+    <div class="wx-app" id="app">
+      <!-- 左侧：会话列表 -->
+      <aside class="wx-sidebar" id="sidebar">
+        <header class="wx-sidebar-head">
+          <div class="wx-me">
+            <div class="wx-me-avatar" id="meAvatar">?</div>
+            <div class="wx-me-info">
+              <span class="wx-me-name" id="currentUser">未登录</span>
+              <span class="wx-me-id" id="meUserIdHint">user_id: 1</span>
+            </div>
+          </div>
+          <div class="wx-sidebar-actions">
+            <button type="button" class="icon-btn" id="btnRefreshConv" title="刷新会话">↻</button>
+            <button type="button" class="icon-btn" id="btnOpenSettings" title="设置">⚙</button>
+          </div>
+        </header>
+        <div class="wx-search">
+          <input type="search" id="convSearch" placeholder="搜索会话" />
         </div>
-        <div class="ws-status" id="wsStatus" data-state="off">
-          <span class="ws-dot"></span>
-          <span id="wsStatusText">未连接</span>
+        <div class="wx-conv-list" id="convList"></div>
+        <div class="wx-sidebar-foot">
+          <button type="button" class="foot-btn" id="btnQuickGroup1">种子群</button>
+          <button type="button" class="foot-btn" id="btnQuickC2c2">私信 2</button>
+          <button type="button" class="foot-btn" id="btnQuickC2c3">私信 3</button>
         </div>
-      </header>
+      </aside>
 
-      <nav class="tabs" role="tablist">
-        <button type="button" class="tab active" data-tab="msg" role="tab" aria-selected="true">消息调试</button>
-        <button type="button" class="tab" data-tab="group" role="tab" aria-selected="false">群测试</button>
+      <!-- 右侧：聊天区 -->
+      <main class="wx-chat" id="chatMain">
+        <header class="wx-chat-head">
+          <button type="button" class="icon-btn mobile-only" id="btnBackList" aria-label="返回">‹</button>
+          <div class="wx-chat-titles">
+            <h1 id="chatTitle">IM 测试</h1>
+            <p id="chatSubtitle"></p>
+          </div>
+          <div class="wx-chat-actions">
+            <div class="ws-pill" id="wsStatus" data-state="off">
+              <span class="ws-dot"></span>
+              <span id="wsStatusText">离线</span>
+            </div>
+            <button type="button" class="icon-btn" id="btnLoadHistory" title="拉取历史">📜</button>
+            <button type="button" class="icon-btn" id="btnMarkRead" title="标记已读">✓</button>
+          </div>
+        </header>
+
+        <div class="wx-messages" id="messageScroll">
+          <div class="wx-message-list" id="messageList">
+            <div class="chat-placeholder">
+              <p>登录并连接后即可聊天</p>
+              <button type="button" class="btn primary" id="btnLoginPrompt">登录</button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="wx-composer">
+          <textarea id="content" rows="1" placeholder="输入消息，Enter 发送"></textarea>
+          <button type="button" class="btn-send" id="btnSend" disabled>发送</button>
+        </footer>
+      </main>
+    </div>
+
+    <!-- 设置抽屉 -->
+    <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
+    <aside class="drawer hidden" id="drawer">
+      <header class="drawer-head">
+        <h2>设置</h2>
+        <button type="button" class="icon-btn" id="btnCloseDrawer">×</button>
+      </header>
+      <nav class="drawer-tabs">
+        <button type="button" class="drawer-tab active" data-drawer="login">登录</button>
+        <button type="button" class="drawer-tab" data-drawer="config">连接</button>
+        <button type="button" class="drawer-tab" data-drawer="group">群管理</button>
+        <button type="button" class="drawer-tab" data-drawer="log">日志</button>
       </nav>
 
-      <section class="panel" id="panelConfig">
-        <h2>服务地址</h2>
-        <div class="field-grid">
-          <label>
-            User API
-            <input type="text" id="userApi" placeholder="/proxy/user 或 http://localhost:10100" />
-          </label>
-          <label>
-            Gateway WS
-            <input type="text" id="gatewayWs" placeholder="ws://localhost:10000/v1/ws" />
-          </label>
-          <label>
-            Conversation API
-            <input type="text" id="convApi" placeholder="/proxy/conversation" />
-          </label>
-          <label>
-            Message API
-            <input type="text" id="msgApi" placeholder="/proxy/message" />
-          </label>
-          <label>
-            Group API
-            <input type="text" id="groupApi" placeholder="/proxy/group" />
-          </label>
-        </div>
-        <div class="btn-row">
-          <button type="button" class="btn ghost" id="btnSaveConfig">保存配置</button>
-          <button type="button" class="btn ghost" id="btnResetConfig">恢复默认</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>鉴权</h2>
-        <div class="inline-fields">
-          <label class="grow">
-            user_id
-            <input type="number" id="userId" value="1" min="1" />
-          </label>
-          <button type="button" class="btn primary" id="btnDevToken">获取 dev-token</button>
-        </div>
-        <label class="token-field">
-          JWT
-          <textarea id="token" rows="2" placeholder="dev-token 或手动粘贴"></textarea>
-        </label>
-        <p class="hint">
-          需 <code>Auth.DevMode: true</code>。种子用户 1/2/3，会话
-          <code>group_1</code>、<code>c2c_1_2</code>（<code>make docker-seed</code>）。当前：<strong id="currentUser">—</strong>
-        </p>
-      </section>
-
-      <div id="viewMsg" class="view active">
-      <section class="panel">
-        <h2>WebSocket</h2>
-        <div class="btn-row">
-          <button type="button" class="btn primary" id="btnWsConnect">连接</button>
-          <button type="button" class="btn" id="btnWsDisconnect" disabled>断开</button>
-          <button type="button" class="btn" id="btnPing">Ping</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>发消息 <span class="tag">type: send</span></h2>
-        <label>
-          conv_id
-          <input type="text" id="convId" placeholder="group_1 或 c2c_1_2" />
-        </label>
-        <div class="inline-fields">
-          <label>
-            msg_type
-            <input type="text" id="msgType" value="text" />
-          </label>
-          <label class="grow">
-            client_msg_id
-            <input type="text" id="clientMsgId" placeholder="可选，幂等" />
-          </label>
-        </div>
-        <label>
-          content
-          <textarea id="content" rows="2" placeholder="消息正文"></textarea>
-        </label>
-        <div class="btn-row">
-          <button type="button" class="btn primary" id="btnSend">发送</button>
-          <button type="button" class="btn ghost" id="btnGenClientId">生成 client_msg_id</button>
-        </div>
-        <div class="quick-conv">
-          <span>快捷：</span>
-          <button type="button" class="chip" data-conv="group_1">group_1</button>
-          <button type="button" class="chip" data-c2c="2">c2c 对端 2</button>
-          <button type="button" class="chip" data-c2c="3">c2c 对端 3</button>
-        </div>
-        <p class="hint">WS 在线即可收推送，无需 <code>subscribe_group</code>（已废弃）。</p>
-      </section>
-
-      <section class="panel">
-        <h2>REST</h2>
-        <div class="btn-row wrap">
-          <button type="button" class="btn" id="btnListConv">会话列表</button>
-          <button type="button" class="btn" id="btnListMsg">拉历史消息</button>
-          <button type="button" class="btn" id="btnMarkRead">标记已读</button>
-        </div>
-        <label>
-          direct_days（私信过滤，空=默认）
-          <input type="number" id="directDays" min="0" placeholder="0=全部私信" />
-        </label>
-        <label>
-          mark_read seq
-          <input type="number" id="readSeq" value="0" min="0" />
-        </label>
-        <input type="hidden" id="groupId" value="1" />
-      </section>
-      </div>
-
-      <div id="viewGroup" class="view" hidden>
-        <section class="panel">
-          <h2>建测试群 <span class="tag">仅自己</span></h2>
-          <label>
-            群名称
-            <input type="text" id="testGroupName" placeholder="调试群-1" />
-          </label>
+      <div class="drawer-body">
+        <section class="drawer-pane active" data-pane="login">
+          <label>user_id <input type="number" id="userId" value="1" min="1" /></label>
           <div class="btn-row">
-            <button type="button" class="btn primary" id="btnCreateSoloGroup">创建（member_ids 为空）</button>
-            <button type="button" class="btn ghost" id="btnLoadSeedGroup">填入种子 group_1</button>
+            <button type="button" class="btn primary" id="btnDevToken">获取 Token 并连接</button>
           </div>
-          <p class="hint">群主即当前 user_id。双用户：A 建群 → A 拉 B → B 换账号验证并连接 WS。</p>
+          <label>JWT <textarea id="token" rows="2" placeholder="dev-token"></textarea></label>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btnWsConnect">连接 WS</button>
+            <button type="button" class="btn" id="btnWsDisconnect" disabled>断开</button>
+            <button type="button" class="btn ghost" id="btnPing">Ping</button>
+          </div>
+          <p class="hint">种子用户 1/2/3，群 <code>group_1</code>，私信 <code>c2c_1_2</code></p>
         </section>
 
-        <section class="panel">
-          <h2>最近测试群</h2>
+        <section class="drawer-pane" data-pane="config" hidden>
+          <label>User API <input type="text" id="userApi" /></label>
+          <label>Gateway WS <input type="text" id="gatewayWs" /></label>
+          <label>Conversation API <input type="text" id="convApi" /></label>
+          <label>Message API <input type="text" id="msgApi" /></label>
+          <label>Group API <input type="text" id="groupApi" /></label>
+          <div class="btn-row">
+            <button type="button" class="btn ghost" id="btnSaveConfig">保存</button>
+            <button type="button" class="btn ghost" id="btnResetConfig">恢复默认</button>
+          </div>
+          <label>direct_days <input type="number" id="directDays" min="0" placeholder="空=全部" /></label>
+        </section>
+
+        <section class="drawer-pane" data-pane="group" hidden>
+          <h3>建群</h3>
+          <label>群名称 <input type="text" id="testGroupName" placeholder="调试群" /></label>
+          <div class="btn-row">
+            <button type="button" class="btn primary" id="btnCreateSoloGroup">创建空群</button>
+            <button type="button" class="btn ghost" id="btnLoadSeedGroup">种子 group_1</button>
+          </div>
           <div id="testGroupHistory" class="group-history"></div>
-        </section>
-
-        <section class="panel">
-          <h2>拉人进群 <span class="tag">POST /groups/:id/members</span></h2>
+          <h3>拉人</h3>
           <div class="inline-fields">
-            <label>
-              group_id
-              <input type="number" id="testGroupId" min="1" placeholder="1" />
-            </label>
-            <label class="grow">
-              conv_id
-              <input type="text" id="testGroupConvId" placeholder="group_1" />
-            </label>
+            <label>group_id <input type="number" id="testGroupId" min="1" /></label>
+            <label>conv_id <input type="text" id="testGroupConvId" placeholder="group_1" /></label>
           </div>
-          <label>
-            user_ids（逗号分隔）
-            <input type="text" id="pullUserIds" placeholder="2, 3" />
-          </label>
+          <label>user_ids <input type="text" id="pullUserIds" placeholder="2, 3" /></label>
           <div class="inline-fields">
-            <label>
-              快捷 uid
-              <input type="number" id="pullPresetUid" value="2" min="1" />
-            </label>
-            <button type="button" class="btn ghost" id="btnPullSelfOther">填入上方</button>
+            <label>快捷 <input type="number" id="pullPresetUid" value="2" min="1" /></label>
+            <button type="button" class="btn ghost" id="btnPullSelfOther">填入</button>
           </div>
           <div class="btn-row wrap">
-            <button type="button" class="btn primary" id="btnAddMembers">拉人进群</button>
-            <button type="button" class="btn" id="btnGetGroup">群详情</button>
-            <button type="button" class="btn" id="btnListGroupMembers">成员列表</button>
+            <button type="button" class="btn primary" id="btnAddMembers">拉人</button>
+            <button type="button" class="btn" id="btnGetGroup">详情</button>
+            <button type="button" class="btn" id="btnListGroupMembers">成员</button>
           </div>
-        </section>
-
-        <section class="panel">
-          <h2>加入测试群 <span class="tag">被邀请方</span></h2>
-          <p class="join-status" id="joinStatus" data-state="idle">填写 group_id，由群主拉你进群后再操作</p>
+          <p class="join-status" id="joinStatus" data-state="idle">—</p>
           <div class="btn-row wrap">
-            <button type="button" class="btn primary" id="btnApplyGroupTargets">同步到消息页</button>
-            <button type="button" class="btn" id="btnJoinRefreshConv">刷新会话验证</button>
-            <button type="button" class="btn" id="btnJoinCheckWs">检查 WS 在线</button>
+            <button type="button" class="btn" id="btnApplyGroupTargets">打开该群</button>
+            <button type="button" class="btn" id="btnJoinRefreshConv">验证会话</button>
+            <button type="button" class="btn" id="btnJoinCheckWs">检查 WS</button>
           </div>
-          <p class="hint">被邀请方：群主拉人后 → 刷新会话验证 → 检查 WS → 同步到消息页发 group_* 消息。</p>
         </section>
-      </div>
 
-      <section class="panel log-panel">
-        <div class="log-header">
-          <h2>事件日志</h2>
-          <div class="btn-row">
-            <label class="filter-check">
-              <input type="checkbox" id="filterWs" checked /> WS
-            </label>
-            <label class="filter-check">
-              <input type="checkbox" id="filterRest" checked /> REST
-            </label>
-            <label class="filter-check">
-              <input type="checkbox" id="filterSys" checked /> 系统
-            </label>
+        <section class="drawer-pane log-pane" data-pane="log" hidden>
+          <div class="log-toolbar">
+            <label class="filter-check"><input type="checkbox" id="filterWs" checked /> WS</label>
+            <label class="filter-check"><input type="checkbox" id="filterRest" checked /> REST</label>
+            <label class="filter-check"><input type="checkbox" id="filterSys" checked /> 系统</label>
             <button type="button" class="btn ghost sm" id="btnClearLog">清空</button>
           </div>
-        </div>
-        <ol class="log-list" id="logList"></ol>
-      </section>
-    </div>
+          <ol class="log-list" id="logList"></ol>
+        </section>
+      </div>
+    </aside>
+
+    <!-- 兼容 group-test / 内部状态 -->
+    <input type="hidden" id="convId" />
+    <input type="hidden" id="groupId" value="1" />
+    <input type="hidden" id="msgType" value="text" />
+    <input type="hidden" id="clientMsgId" />
+    <input type="hidden" id="readSeq" value="0" />
+    <button type="button" id="btnListConv" hidden></button>
+    <button type="button" id="btnListMsg" hidden></button>
+    <button type="button" id="btnGenClientId" hidden></button>
 
     <script type="module" src="/src/main.js"></script>
   </body>

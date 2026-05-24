@@ -182,7 +182,7 @@ export function initGroupTest(ctx) {
       $('joinStatus').dataset.state = 'ok';
       logger.log('sys', 'WS', '已连接。文档：无需 subscribe_group，保持 WS + ping 即可');
     } else {
-      $('joinStatus').textContent = '请先在「消息调试」连接 WebSocket';
+      $('joinStatus').textContent = '请先在设置中连接 WebSocket';
       $('joinStatus').dataset.state = 'warn';
       logger.log('sys', '错误', 'WebSocket 未连接');
     }
