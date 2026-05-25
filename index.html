@@ -16,6 +16,7 @@
             <div class="wx-me-info">
               <span class="wx-me-name" id="currentUser">未登录</span>
               <span class="wx-me-id" id="meUserIdHint">user_id: 1</span>
+              <span class="global-unread hidden" id="globalUnread" title="全部未读"></span>
             </div>
           </div>
           <div class="wx-sidebar-actions">
@@ -62,8 +63,20 @@
         </div>
 
         <footer class="wx-composer">
-          <textarea id="content" rows="1" placeholder="输入消息，Enter 发送"></textarea>
-          <button type="button" class="btn-send" id="btnSend" disabled>发送</button>
+          <div class="composer-toolbar" id="composerToolbar"></div>
+          <div class="composer-fields hidden" id="composerFields"></div>
+          <div class="draft-strip hidden" id="draftStrip">
+            <span class="draft-strip-label">待发送 <em id="draftCount">0</em> 段</span>
+            <ul class="draft-parts-list" id="draftPartsList"></ul>
+            <div class="draft-strip-actions">
+              <button type="button" class="foot-btn" id="btnAddPart" title="将当前内容加入队列">+ 片段</button>
+              <button type="button" class="foot-btn" id="btnClearDraft">清空</button>
+            </div>
+          </div>
+          <div class="composer-main" id="composerMain">
+            <textarea id="content" rows="1" placeholder="输入文字，Enter 发送"></textarea>
+            <button type="button" class="btn-send" id="btnSend" disabled>发送</button>
+          </div>
         </footer>
       </main>
     </div>
@@ -94,7 +107,7 @@
             <button type="button" class="btn" id="btnWsDisconnect" disabled>断开</button>
             <button type="button" class="btn ghost" id="btnPing">Ping</button>
           </div>
-          <p class="hint">种子用户 1/2/3，群 <code>group_1</code>，私信 <code>c2c_1_2</code></p>
+          <p class="hint">种子用户 1/2/3。消息使用 <code>input[]</code>：text / image / emoji / custom（红包、卡片、分享、标签）。</p>
         </section>
 
         <section class="drawer-pane" data-pane="config" hidden>
@@ -156,7 +169,6 @@
     <!-- 兼容 group-test / 内部状态 -->
     <input type="hidden" id="convId" />
     <input type="hidden" id="groupId" value="1" />
-    <input type="hidden" id="msgType" value="text" />
     <input type="hidden" id="clientMsgId" />
     <input type="hidden" id="readSeq" value="0" />
     <button type="button" id="btnListConv" hidden></button>

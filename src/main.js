@@ -13,6 +13,8 @@ import { createWsClient } from './ws.js';
 import { createLogger } from './logger.js';
 import { initGroupTest } from './group-test.js';
 import { createChatUI } from './chat-ui.js';
+import { initComposer } from './composer.js';
+import { normalizeMessage } from './message.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -120,43 +122,49 @@ function wsSend(frame) {
   ws.send(frame);
 }
 
+let composer;
+
 function sendCurrentMessage() {
   const convId = chatUi.getActiveConvId() || normalizeConvId($('convId').value.trim());
-  const content = $('content').value.trim();
   if (!convId) {
     openDrawer('login');
     logger.log('sys', '提示', '请先选择会话');
     return;
   }
-  if (!content) return;
   if (!ws.connected) {
     openDrawer('login');
     logger.log('sys', '提示', '请先连接 WebSocket');
     return;
   }
+
+  const input = composer.buildSendInput();
+  if (!input.length) {
+    logger.log('sys', '提示', '请填写内容，或图片+文字一起发送');
+    return;
+  }
+
   $('convId').value = convId;
   const clientMsgId = crypto.randomUUID();
   $('clientMsgId').value = clientMsgId;
   const me = getCurrentUserId();
-  chatUi.appendMessage(convId, {
+  const optimistic = {
     conv_id: convId,
     sender_id: me,
-    content,
-    msg_type: 'text',
+    input,
     client_msg_id: clientMsgId,
     ts: Date.now(),
-  });
-  chatUi.updatePreview(convId, content);
+  };
+  chatUi.appendMessage(convId, optimistic);
+  chatUi.updatePreview(convId, optimistic);
   try {
     wsSend({
       type: 'send',
       conv_id: convId,
-      content,
-      msg_type: 'text',
+      input,
       client_msg_id: clientMsgId,
+      send_ts: Date.now(),
     });
-    $('content').value = '';
-    $('content').style.height = 'auto';
+    composer.clearAfterSend();
   } catch (e) {
     logger.log('sys', '发送失败', e.message);
   }
@@ -175,8 +183,11 @@ function highlightFrame(raw) {
       if (convId) {
         const msgs = chatUi.getMessages(convId);
         const last = msgs[msgs.length - 1];
-        if (last && !last.seq) last.seq = frame.seq;
-        chatUi.updatePreview(convId, last?.content, frame.seq);
+        if (last && !last.seq) {
+          last.seq = frame.seq;
+          if (frame.msg_id) last.id = frame.msg_id;
+        }
+        chatUi.updatePreview(convId, last ? normalizeMessage(last) : '', frame.seq);
         markCurrentRead();
       }
     }
@@ -292,7 +303,7 @@ function switchDrawerTab(tab) {
 
 // —— 初始化 ——
 applyConfig(loadConfig());
-logger.log('sys', '就绪', '微信风格测试页。登录后自动拉会话列表并连接 WS。');
+logger.log('sys', '就绪', '消息格式 input[]：text / image / emoji / custom（红包、卡片、分享、标签）。');
 
 $('btnOpenSettings').addEventListener('click', () => openDrawer('login'));
 $('btnLoginPrompt').addEventListener('click', () => openDrawer('login'));
@@ -330,6 +341,8 @@ $('btnWsDisconnect').addEventListener('click', () => ws.disconnect());
 $('btnPing').addEventListener('click', () => {
   try { wsSend({ type: 'ping' }); } catch (e) { logger.log('sys', '错误', e.message); }
 });
+
+composer = initComposer($, {});
 
 $('btnSend').addEventListener('click', sendCurrentMessage);
 
